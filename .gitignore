@@ -209,3 +209,8 @@ __marimo__/
 
 #files and folders
 data/raw/voxeurop_content.csv
+
+
+.venv
+
+archive
