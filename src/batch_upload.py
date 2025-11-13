@@ -82,7 +82,16 @@ def upload_in_batches(chunked_articles, batch_size=100):
             first_result = results['metadatas'][0][0]
             print(f"  Top result: {first_result.get('title', 'No title')}")
 
-if __name__ == "__main__":
+def main():
+    """Main function to run batch upload of chunked articles to ChromaDB"""
+    import os
+    
+    # Adjust paths to work from project root
+    data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'chunked', 'chunked_articles.json')
+    
     print("Loading chunked articles...")
-    chunked_articles = load_chunked_articles('../data/chunked/chunked_articles.json')
+    chunked_articles = load_chunked_articles(data_path)
     upload_in_batches(chunked_articles, batch_size=50)
+
+if __name__ == "__main__":
+    main()

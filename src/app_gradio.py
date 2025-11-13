@@ -88,7 +88,11 @@ def build_app():
     return demo
 
 
-if __name__ == "__main__":
+def main():
+    """Main function to run the Gradio app"""
     app = build_app()
     # By default launches on http://127.0.0.1:7860
     app.launch()
+
+if __name__ == "__main__":
+    main()
