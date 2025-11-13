@@ -17,6 +17,9 @@ pandas = "^2.2.3"
 numpy = "^1.26.4"
 sentence-transformers = "^4.1.0"
 tqdm = "^4.67.1"
+bs4 = "^0.0.2"
+langchain-text-splitters = "^1.0.0"
+trafilatura = "^2.0.0"
 
 [tool.poetry.scripts]
 # Main Applications
