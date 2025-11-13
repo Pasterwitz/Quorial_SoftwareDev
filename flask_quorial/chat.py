@@ -18,7 +18,7 @@ if src_path not in sys.path:
 
 # Import the retriever function
 try:
-    from retriever import retrieve
+    from src.retriever import retrieve
 except ImportError:
     # Fallback if retriever module is not available
     def retrieve(query, top_k=5, context_size=2, where=None):
