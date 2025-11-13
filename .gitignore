@@ -239,3 +239,4 @@ data/preprocessed/voxeurop_cleaned_content_v2.json
 # Generated images / screenshots
 flask_quorial/static/*.png
 data/raw/.~lock.voxeurop_content.csv#
+data/raw/voxeurop_content.ods
