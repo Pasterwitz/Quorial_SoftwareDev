@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application - Register</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --accent-start: #667eea;
+            --accent-end: #764ba2;
+            --card-bg: rgba(255,255,255,0.82);
+            --text-muted: #666666;
+            --text-main: #222222;
+        }
+
+        html,body{
+            height:100%;
+            margin:0;
+            padding:0;
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color:var(--text-main);
+            -webkit-font-smoothing:antialiased;
+            -moz-osx-font-smoothing:grayscale;
+        }
+
+        /* Full-screen slideshow behind the content */
+        .bg-slideshow{position:fixed;inset:0;z-index:-2;overflow:hidden}
+        .bg-slideshow .slide{position:absolute;inset:0;background-size:cover;background-position:center center;opacity:0;transform:scale(1.02);filter:brightness(0.9);animation:slideAnimation 15s linear infinite}
+        .bg-slideshow .slide:nth-child(1){animation-delay:0s}
+        .bg-slideshow .slide:nth-child(2){animation-delay:5s}
+        .bg-slideshow .slide:nth-child(3){animation-delay:10s}
+
+        @keyframes slideAnimation{
+            0%{opacity:0}
+            5%{opacity:1}
+            30%{opacity:1}
+            35%{opacity:0}
+            100%{opacity:0}
+        }
+
+        /* subtle dark overlay so text is readable */
+        .bg-overlay{position:fixed;inset:0;background:linear-gradient(180deg, rgba(10,10,10,0.25), rgba(10,10,10,0.35));z-index:-1}
+
+        /* layout */
+        body{
+            display:flex;align-items:center;justify-content:center;min-height:100vh;
+        }
+
+        .register-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(12,18,30,0.25);
+            padding: 36px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+
+        .register-header {
+            margin-bottom: 30px;
+        }
+
+        .register-header h1 {
+            color: var(--text-main);
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.2px;
+        }
+
+        .register-header p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-start);
+            box-shadow: 0 6px 18px rgba(102,126,234,0.12);
+        }
+
+        .register-btn {
+            width: 100%;
+            background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+            border: none;
+            color: white;
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            box-shadow: 0 8px 20px rgba(102,126,234,0.18);
+        }
+
+        .register-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 30px rgba(102,126,234,0.18);
+        }
+
+        .login-link {
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .login-link a {
+            color: var(--accent-start);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .chat-icon {
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            color: var(--accent-start);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background slideshow (3 images) -->
+    <div class="bg-slideshow">
+        <div class="slide" data-img="{{ url_for('static', filename='pics/ChatGPT Image Nov 13, 2025, 05_33_38 PM.png') }}"></div>
+        <div class="slide" data-img="{{ url_for('static', filename='pics/ChatGPT Image Nov 13, 2025, 05_37_47 PM.png') }}"></div>
+        <div class="slide" data-img="{{ url_for('static', filename='pics/ChatGPT Image Nov 13, 2025, 05_49_26 PM.png') }}"></div>
+    </div>
+    <div class="bg-overlay"></div>
+
+    <div class="register-container">
+        <div class="register-header">
+            <div class="chat-icon">Quorial - quick, query, evidential</div>
+            <h1>Join Us!</h1>
+            <p>Create an account to start chatting</p>
+        </div>
+
+        {% if get_flashed_messages() %}
+            <div class="alert">
+                {% for message in get_flashed_messages() %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" name="username" id="username" required placeholder="Choose a username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" name="password" id="password" required placeholder="Create a password">
+            </div>
+            
+            <button type="submit" class="register-btn">Create Account</button>
+        </form>
+
+        <div class="login-link">
+            Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+        </div>
+    </div>
+
+    <script>
+        // Set slideshow images from data attributes to avoid Jinja in CSS
+        (function(){
+            const slides = document.querySelectorAll('.bg-slideshow .slide');
+            slides.forEach((s) => {
+                const src = s.getAttribute('data-img');
+                if(src){ s.style.backgroundImage = `url('${src}')`; }
+            });
+        })();
+    </script>
+</body>
+</html>

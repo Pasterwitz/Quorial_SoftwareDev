@@ -14,7 +14,7 @@ collection = client_chroma.get_or_create_collection(name = "voxeurop_articles", 
 #verifying my collection
 print(f"ChromaDB collection {client_chroma.list_collections()}")
 
-chunked_articles = load_chunked_articles('data/chunked/chunked_articles.json')
+chunked_articles = load_chunked_articles('../data/chunked/chunked_articles.json')
 
 print("Adding chunks to ChromaDB...")
 for idx, chunk in enumerate(chunked_articles):
@@ -48,4 +48,3 @@ for idx, result in enumerate(search_results["documents"][0]):
     print(f"Title: {metadata['title']}")
     print(f"Summary: {metadata.get('summary', 'N/A')[:100]}...")
     print(f"Chunk: {result[:200]}...")
-    

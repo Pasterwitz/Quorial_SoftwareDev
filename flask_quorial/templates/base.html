@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- <base href="https://to.do" /> -->
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="another unseen university">
+    <meta name="author" content="">
+    <title>Another Unseen University</title>
+
+    <link rel="canonical" href="https://www.to.do">
+
+    <!-- Bootstrap core CSS -->
+    <link href="{{ url_for('static', filename='dist/css/bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="{{ url_for('static', filename='dist/css/uu.css') }}" rel="stylesheet">
+
+</head>
+
+<body>
+
+<!-- HEADER-TAG -->
+<header>
+  <nav class="navbar navbar-expand-md fixed-top navbar-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">A.U.U.</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+<!-- show the menu only in case of logged in user -->
+{% if g.user %}
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-md-0">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="/">Home</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown1" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Exams
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <a class="dropdown-item" href="/exams">Exams taken</a>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown2" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Library
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <a class="dropdown-item" href="/library/borrowedbooks">Borrow Books</a>
+              <a class="dropdown-item" href="/library/search">Search Book Title</a>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/chat">Chat</a>
+          </li>
+           <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown3" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Logout
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a>
+            </ul>
+          </li>
+        </ul>
+      </div>
+{% else %}
+    <div class="collapse navbar-collapse" id="navbarSupportedContent2">
+    <ul class="navbar-nav me-auto mb-2 mb-md-0">
+           <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown4" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Login
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <a class="dropdown-item" href="{{ url_for('auth.login') }}">Login</a>
+            </ul>
+          </li>
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown5" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Register
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <a class="dropdown-item" role="link" aria-disabled="true">Register</a>
+            </ul>
+          </li>
+        </ul>
+      </div>
+{% endif %}
+
+    </div>
+  </nav>
+</header>
+<!--end HEADER -->
+
+
+<main>
+    {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+     {% endfor %}
+
+    {% block content %}
+    {% endblock %}
+
+    <!-- FOOTER -->
+     <hr class="featurette-divider">
+    <footer class="container">
+    <p class="float-end"><a href="#">Back to top</a></p>
+    <p>&copy; 2023 Another Unseen University </p>
+</footer>
+
+</main>
+
+<script src="{{ url_for('static', filename='dist/js/bootstrap.bundle.min.js') }}"></script>
+
+</body>
+
+</html>

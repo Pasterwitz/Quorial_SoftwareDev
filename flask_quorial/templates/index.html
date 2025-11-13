@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+    <!-- CAROUSEL -->
+<div id="mycarousel" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+      <button type="button" data-bs-target="#mycarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="slide 1"></button>
+      <button type="button" data-bs-target="#mycarousel" data-bs-slide-to="1" aria-label="slide 2"></button>
+      <button type="button" data-bs-target="#mycarousel" data-bs-slide-to="2" aria-label="slide 3"></button>
+    </div>
+    <div class="carousel-inner">
+      <div class="carousel-item active text-center">
+        <img class="img-fluid rounded" src="{{ url_for('static', filename='pics/carousel1.jpg') }}"/>
+        <div class="container">
+          <div class="carousel-caption">
+            <h1>Welcome to Another Unseen University</h1>
+            <p> >> exams and library</p>
+          </div>
+        </div>
+      </div>
+      <div class="carousel-item text-center">
+        <img class="img-fluid rounded" src="{{ url_for('static', filename='pics/carousel2.jpg') }}"/>
+        <div class="container">
+          <div class="carousel-caption">
+            <h1>Welcome to Another Unseen University</h1>
+            <p> >> exams and library</p>
+          </div>
+        </div>
+      </div>
+      <div class="carousel-item text-center">
+        <img class="img-fluid rounded" src="{{ url_for('static', filename='pics/carousel3.jpg') }}"/>
+        <div class="container">
+          <div class="carousel-caption">
+            <h1>Welcome to Another Unseen University</h1>
+            <p> >> exams and library</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#mycarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#mycarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">next</span>
+    </button>
+  </div>
+    <!-- END CAROUSEL -->
+
+{% if g.user %}
+  <div class="container marketing">
+
+        <!-- START THE FEATURETTES -->
+        <hr class="featurette-divider">
+
+        <div class="row featurette">
+            <div class="col-md-7 order-md-2">
+                <h2 class="featurette-heading">{{ g.user['username'] }}, welcome to the library and exam demo of Another Unseen University</h2>
+
+                <p class="lead">This demo is an example for web engineering with database access, using an example from the book of Heuer/Saake</p>
+
+                <p>We encourage you to study source and functionality.</p>
+
+            </div>
+            <div class="col-md-5 order-md-1">
+                <img class="img-fluid img-thumbnail" width="500" height="500" src="{{ url_for('static', filename='pics/featurette1.jpg') }}"/>
+            </div>
+        </div>
+
+        <hr class="featurette-divider">
+
+        <div class="row featurette">
+            <div class="col-md-7">
+
+               <h2 class="featurette-heading">Info area</h2>
+                <p class="lead">...unseen...unknown...till today!</p>
+                <p>
+                <ul>
+                 <li>Source for this example: <a href="download/unseensource.zip" target="_blank">unseensource.zip</a></li>
+                 <li>Flask for backend: <a href="https://flask.palletsprojects.com/en/2.2.x/tutorial/" target="_blank">Flask tutorial</a></li>
+                 <li>Bootstrap for frontend dev: <a href="https://getbootstrap.com/" target="_blank"><b>Bootstrap Tutorial</b></a></li>
+                 <li>HTML, CSS, Javascript for frontend dev: <a href="https://developer.mozilla.org/en-US/docs/Learn/HTML/" target="_blank"><b>HTML, CSS, Javascript</b></a></li>
+                </ul>
+                </p>
+
+            </div>
+            <div class="col-md-5">
+                <img class="img-fluid img-thumbnail" width="500" height="500" src="{{ url_for('static', filename='pics/featurette2.jpg') }}"/>
+            </div>
+        </div>
+
+        <!-- /END THE FEATURETTES -->
+
+    </div><!-- /.container -->
+
+
+{% else %}
+  <div class="container marketing">
+
+        <!-- START THE FEATURETTES -->
+      <hr class="featurette-divider">
+       <p class="lead">Please log in or register yourself!</p>
+       <p><a href="auth/login"><b>Login</b></a></p>
+       <p><a role="link" aria-disabled="true"><b>Register</b></a></p>
+        <hr class="featurette-divider">
+        <!-- /END THE FEATURETTES -->
+
+  </div><!-- /.container -->
+{% endif %}
+
+
+{% endblock %}

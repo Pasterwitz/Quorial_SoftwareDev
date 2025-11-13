@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+<!-- Marketing messaging and featurettes
+ ================================================== -->
+<!-- Wrap the rest of the page in another container to center all the content. -->
+
+<div class="container marketing">
+
+    <!-- START THE FEATURETTES -->
+    <div class="signpost"><h1>Exams/ Exams</h1></div>
+
+    <hr class="featurette-divider">
+
+    <div class="row featurette">
+        <div class="col-md-7">
+            <h2 class="featurette-heading">Guest account</h2>
+            <p class="lead">No access to this functionality.</p>
+
+         <p> For full functionality register and log in with a student PANr. Valid PANrs are 7754 and 6834.</p>
+
+        </div>
+        <div class="col-md-5">
+            <img class="img-fluid img-thumbnail" width="300" height="300" src="{{ url_for('static', filename='pics/guest.jpg') }}"/>
+        </div>
+    </div>
+
+    <!--<hr class="featurette-divider">-->
+
+    <!-- /END THE FEATURETTES -->
+
+</div><!-- /.container -->
+
+{% endblock %}

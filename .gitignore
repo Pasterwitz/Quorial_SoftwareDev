@@ -214,3 +214,27 @@ data/raw/voxeurop_content.csv
 .venv
 
 archive
+
+
+# Project-specific ignores
+
+# IDE
+.idea/
+
+# Vector DB / embeddings
+voxeurop_db/
+voxeurop_db_broken_*/
+
+# Local DB + binary index files
+*.sqlite
+*.sqlite3
+*.bin
+*.pickle
+
+# Processed data
+data/chunked/chunked_articles.json
+data/cleaned/voxeurop_content_cleaned_v6.csv
+data/preprocessed/voxeurop_cleaned_content_v2.json
+
+# Generated images / screenshots
+flask_quorial/static/*.png
