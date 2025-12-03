@@ -1,9 +1,16 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 import os
+
+from dotenv import load_dotenv
 from openai import OpenAI
+from mistralai.client import MistralClient
+from mistralai.models.chat_completion import ChatMessage
 
 from src.retriever import retrieve
+
+# Ensure variables from a local .env are available when running the pipeline directly.
+load_dotenv()
 
 def _build_context(sources: List[Dict[str, Any]]) -> str:
     """
@@ -23,22 +30,81 @@ def _build_context(sources: List[Dict[str, Any]]) -> str:
     return "\n\n---\n\n".join(blocks)
 
 
+def _call_openai_llm(system_prompt: str, user_prompt: str, model: str, api_key: str) -> str:
+    client = OpenAI(api_key=api_key)
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.2,
+    )
+
+    return completion.choices[0].message.content
+
+
+def _call_mistral_llm(system_prompt: str, user_prompt: str, model: str, api_key: str) -> str:
+    client = MistralClient(api_key=api_key)
+    completion = client.chat(
+        model=model,
+        messages=[
+            ChatMessage(role="system", content=system_prompt),
+            ChatMessage(role="user", content=user_prompt),
+        ],
+        temperature=0.2,
+    )
+
+    content = completion.choices[0].message.content
+
+    if isinstance(content, str):
+        return content
+
+    # Some SDK versions return structured chunks; join any text fields we find.
+    if isinstance(content, list):
+        parts: List[str] = []
+        for item in content:
+            text = getattr(item, "text", None)
+            if text:
+                parts.append(text)
+            elif isinstance(item, str):
+                parts.append(item)
+            else:
+                nested = getattr(item, "content", None)
+                if nested:
+                    parts.append(str(nested))
+        return "".join(parts).strip()
+
+    return str(content)
+
+
 def generate_rag_response(
     query: str,
     sources: List[Dict[str, Any]],
     api_key: Optional[str] = None,
-    model: str = "gpt-4o-mini",
+    model: Optional[str] = None,
+    provider: str = "openai",
 ) -> Dict[str, Any]:
 
-    if api_key is None:
-        api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "No OpenAI API key provided. "
-            "Pass api_key=... or set OPENAI_API_KEY env var."
-        )
+    provider = provider.lower()
+    if provider not in {"openai", "mistral"}:
+        raise ValueError("provider must be either 'openai' or 'mistral'")
 
-    client = OpenAI(api_key=api_key)
+    if model is None:
+        model = "mistral-small-latest" if provider == "mistral" else "gpt-4o-mini"
+
+    if api_key is None:
+        env_var = "MISTRAL_API_KEY" if provider == "mistral" else "OPENAI_API_KEY"
+        api_key = os.environ.get(env_var)
+    else:
+        env_var = None
+
+    if not api_key:
+        env_note = env_var or ("MISTRAL_API_KEY" if provider == "mistral" else "OPENAI_API_KEY")
+        raise RuntimeError(
+            f"No {provider} API key provided. "
+            f"Pass api_key=... or set {env_note} env var."
+        )
 
     context = _build_context(sources)
 
@@ -56,16 +122,10 @@ def generate_rag_response(
         "If something is unclear or missing, explicitly say that it is not covered."
     )
 
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.2,
-    )
-
-    answer = completion.choices[0].message.content
+    if provider == "mistral":
+        answer = _call_mistral_llm(system_prompt, user_prompt, model, api_key)
+    else:
+        answer = _call_openai_llm(system_prompt, user_prompt, model, api_key)
 
     source_infos = []
     for i, s in enumerate(sources, start=1):
@@ -94,7 +154,8 @@ def complete_rag_pipeline(
     context_window: int = 2,
     max_articles: int = 2,
     where: Optional[Dict[str, Any]] = None,
-    model: str = "gpt-4o-mini",
+    model: Optional[str] = None,
+    provider: str = "openai",
 ) -> Dict[str, Any]:
     """
     Full RAG pipeline:
@@ -127,6 +188,7 @@ def complete_rag_pipeline(
         sources=top_sources,
         api_key=api_key,
         model=model,
+        provider=provider,
     )
     return result
 

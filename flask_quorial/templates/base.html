@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="another unseen university">
     <meta name="author" content="">
-    <title>Another Unseen University</title>
+    <title>Quorial News Assistant</title>
 
     <link rel="canonical" href="https://www.to.do">
 
@@ -25,7 +25,7 @@
 <header>
   <nav class="navbar navbar-expand-md fixed-top navbar-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">A.U.U.</a>
+      <a class="navbar-brand" href="/">Quorial</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -37,33 +37,11 @@
           <li class="nav-item">
             <a class="nav-link active" aria-current="page" href="/">Home</a>
           </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown1" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              Exams
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <a class="dropdown-item" href="/exams">Exams taken</a>
-            </ul>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown2" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              Library
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <a class="dropdown-item" href="/library/borrowedbooks">Borrow Books</a>
-              <a class="dropdown-item" href="/library/search">Search Book Title</a>
-            </ul>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('chat.index') }}">Chat</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/chat">Chat</a>
-          </li>
-           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown3" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              Logout
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a>
-            </ul>
+            <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
           </li>
         </ul>
       </div>
@@ -79,13 +57,8 @@
             </ul>
           </li>
         <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown5" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              Register
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <a class="dropdown-item" role="link" aria-disabled="true">Register</a>
-            </ul>
-          </li>
+            <a class="nav-link" href="#" aria-disabled="true">Register</a>
+        </li>
         </ul>
       </div>
 {% endif %}
@@ -108,7 +81,7 @@
      <hr class="featurette-divider">
     <footer class="container">
     <p class="float-end"><a href="#">Back to top</a></p>
-    <p>&copy; 2023 Another Unseen University </p>
+    <p>&copy; 2025 Quorial News Assistant</p>
 </footer>
 
 </main>

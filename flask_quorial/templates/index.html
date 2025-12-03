@@ -15,8 +15,8 @@
         <img class="img-fluid rounded" src="{{ url_for('static', filename='pics/carousel1.jpg') }}"/>
         <div class="container">
           <div class="carousel-caption">
-            <h1>Welcome to Another Unseen University</h1>
-            <p> >> exams and library</p>
+            <h1>Welcome to Quorial</h1>
+            <p>Ask questions about European civil society topics.</p>
           </div>
         </div>
       </div>
@@ -24,8 +24,8 @@
         <img class="img-fluid rounded" src="{{ url_for('static', filename='pics/carousel2.jpg') }}"/>
         <div class="container">
           <div class="carousel-caption">
-            <h1>Welcome to Another Unseen University</h1>
-            <p> >> exams and library</p>
+            <h1>Stay informed with context</h1>
+            <p>Your chat history and sources are saved per session.</p>
           </div>
         </div>
       </div>
@@ -33,8 +33,8 @@
         <img class="img-fluid rounded" src="{{ url_for('static', filename='pics/carousel3.jpg') }}"/>
         <div class="container">
           <div class="carousel-caption">
-            <h1>Welcome to Another Unseen University</h1>
-            <p> >> exams and library</p>
+            <h1>Grounded answers only</h1>
+            <p>We cite every source retrieved from Voxeurop.</p>
           </div>
         </div>
       </div>
@@ -58,11 +58,11 @@
 
         <div class="row featurette">
             <div class="col-md-7 order-md-2">
-                <h2 class="featurette-heading">{{ g.user['username'] }}, welcome to the library and exam demo of Another Unseen University</h2>
+                <h2 class="featurette-heading">{{ g.user['username'] }}, welcome back!</h2>
 
-                <p class="lead">This demo is an example for web engineering with database access, using an example from the book of Heuer/Saake</p>
+                <p class="lead">Quorial connects your questions to our curated Voxeurop knowledge base and a live Mistral LLM.</p>
 
-                <p>We encourage you to study source and functionality.</p>
+                <p>Open the chat to start a new session or revisit existing answers.</p>
 
             </div>
             <div class="col-md-5 order-md-1">
@@ -75,16 +75,9 @@
         <div class="row featurette">
             <div class="col-md-7">
 
-               <h2 class="featurette-heading">Info area</h2>
-                <p class="lead">...unseen...unknown...till today!</p>
-                <p>
-                <ul>
-                 <li>Source for this example: <a href="download/unseensource.zip" target="_blank">unseensource.zip</a></li>
-                 <li>Flask for backend: <a href="https://flask.palletsprojects.com/en/2.2.x/tutorial/" target="_blank">Flask tutorial</a></li>
-                 <li>Bootstrap for frontend dev: <a href="https://getbootstrap.com/" target="_blank"><b>Bootstrap Tutorial</b></a></li>
-                 <li>HTML, CSS, Javascript for frontend dev: <a href="https://developer.mozilla.org/en-US/docs/Learn/HTML/" target="_blank"><b>HTML, CSS, Javascript</b></a></li>
-                </ul>
-                </p>
+               <h2 class="featurette-heading">How it works</h2>
+                <p class="lead">1) Retrieve relevant articles → 2) Build a grounded context → 3) Ask Mistral for the final response.</p>
+                <p>Each answer cites the sources it relied on so you can verify every claim.</p>
 
             </div>
             <div class="col-md-5">
@@ -102,9 +95,8 @@
 
         <!-- START THE FEATURETTES -->
       <hr class="featurette-divider">
-       <p class="lead">Please log in or register yourself!</p>
-       <p><a href="auth/login"><b>Login</b></a></p>
-       <p><a role="link" aria-disabled="true"><b>Register</b></a></p>
+       <p class="lead">Log in to access the Quorial chat assistant.</p>
+       <p><a href="{{ url_for('auth.login') }}"><b>Login</b></a></p>
         <hr class="featurette-divider">
         <!-- /END THE FEATURETTES -->
 

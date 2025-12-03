@@ -17,6 +17,7 @@ pandas = "^2.2.3"
 numpy = "^1.26.4"
 sentence-transformers = "^4.1.0"
 tqdm = "^4.67.1"
+mistralai = "^0.4.1"
 bs4 = "^0.0.2"
 langchain-text-splitters = "^1.0.0"
 trafilatura = "^2.0.0"
@@ -32,8 +33,6 @@ preprocess-data = "src.preprocess:main"
 chunk-articles = "src.chunking_articles:main"
 
 # ChromaDB Management
-upload-chunks = "src.upload_chunk:main"
-batch-upload = "src.batch_upload:main"
 rebuild-chroma = "src.rebuild_chroma:main"
 
 # RAG Pipeline

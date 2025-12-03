@@ -1,7 +1,9 @@
 from __future__ import annotations
-import os, json
+import json
 import chromadb
 from chromadb.utils import embedding_functions
+
+from src.chroma_config import get_chroma_config
 
 def _sanitize_metadata(meta: dict | None) -> dict:
 
@@ -21,23 +23,20 @@ def _sanitize_metadata(meta: dict | None) -> dict:
                 continue
     return out
 
-CHROMA_PATH = os.environ.get("CHROMA_PATH", "./voxeurop_db")
-COLLECTION_NAME = os.environ.get("CHROMA_COLLECTION", "voxeurop_articles")
-CHUNKED_JSON = os.environ.get("CHUNKED_JSON", "data/chunked/chunked_articles.json")
-
-
 ef = embedding_functions.SentenceTransformerEmbeddingFunction(
     model_name="all-MiniLM-L6-v2"
 )
 
-client = chromadb.PersistentClient(path=CHROMA_PATH)
+CONFIG = get_chroma_config()
+
+client = chromadb.PersistentClient(path=CONFIG.path)
 col = client.get_or_create_collection(
-    name=COLLECTION_NAME,
+    name=CONFIG.collection,
     metadata={"hnsw:space": "cosine"},
     embedding_function=ef,
 )
 
-with open(CHUNKED_JSON, "r", encoding="utf-8") as f:
+with open(CONFIG.chunked_json, "r", encoding="utf-8") as f:
     data = json.load(f)
 
 # Expect items like: {"document": "...", "metadata": {"article_id": ..., "chunk_idx": ...}}

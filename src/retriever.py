@@ -1,19 +1,19 @@
 from __future__ import annotations
-import os
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Optional
 import chromadb
 
-CHROMA_PATH = os.environ.get("CHROMA_PATH", "./voxeurop_db")
-COLLECTION_NAME = os.environ.get("CHROMA_COLLECTION", "voxeurop_articles")
+from src.chroma_config import get_chroma_config
+
+CONFIG = get_chroma_config()
 
 
 def _get_collection() -> chromadb.api.models.Collection.Collection:
     """
     Connect to the existing persistent Chroma DB and open the target collection
     """
-    client = chromadb.PersistentClient(path=CHROMA_PATH)
+    client = chromadb.PersistentClient(path=CONFIG.path)
     collection = client.get_or_create_collection(
-        name=COLLECTION_NAME,
+        name=CONFIG.collection,
         metadata={"hnsw:space": "cosine"}
     )
     return collection

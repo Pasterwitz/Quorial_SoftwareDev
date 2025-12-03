@@ -1,223 +1,70 @@
-# 🎯 Poetry Commands for QUORIAL Project
+# Poetry Command Guide
 
-## Available Poetry Scripts
+## 1. Prerequisites
+- Python 3.11+
+- [Poetry](https://python-poetry.org/docs/#installation)
+- Personal `MISTRAL_API_KEY` (required for the LLM call)
 
-After adding Poetry scripts to `pyproject.toml`, you can now run all project components using simple `poetry run` commands:
-
-### 🚀 **Main Applications**
-
-#### **Flask Chat Application**
+## 2. First-Time Setup (run every step on each new machine)
 ```bash
-poetry run chat-app
-```
-- Runs the main QUORIAL Flask web application
-- Starts server at http://127.0.0.1:5000
-- Includes beautiful slideshow login and RAG-powered chat
+# Clone and enter the repo
+git clone https://.../Quorial_SoftwareDev-1.git
+cd Quorial_SoftwareDev-1
 
-#### **Gradio Interface**
-```bash
-poetry run gradio-app
-```
-- Launches the Gradio web interface
-- Starts server at http://127.0.0.1:7860
-- Simple chat interface for testing RAG functionality
+# Prepare environment variables
+cp .env.example .env
+# Edit .env and add your MISTRAL_API_KEY (and optional CHROMA/MODEL overrides)
 
----
-
-### 📊 **Data Processing Scripts**
-
-#### **Clean Raw Data**
-```bash
-poetry run clean-data
-```
-- Cleans and preprocesses raw article data
-- Removes duplicates and formats content
-
-#### **Preprocess Data**
-```bash
-poetry run preprocess-data
-```
-- Advanced preprocessing of article content
-- Prepares data for chunking and embedding
-
-#### **Chunk Articles**
-```bash
-poetry run chunk-articles
-```
-- Splits articles into manageable chunks
-- Optimizes chunk size for better RAG retrieval
-
----
-
-### 🗄️ **ChromaDB Management**
-
-#### **Upload Chunks (Individual)**
-```bash
-poetry run upload-chunks
-```
-- Uploads chunked articles to ChromaDB one by one
-- Good for testing and small datasets
-
-#### **Batch Upload (Recommended)**
-```bash
-poetry run batch-upload
-```
-- Efficiently uploads chunks in batches to ChromaDB
-- Faster processing for large datasets
-- Includes progress tracking
-
-#### **Rebuild ChromaDB**
-```bash
-poetry run rebuild-chroma
-```
-- Completely rebuilds the ChromaDB vector database
-- Useful when changing embedding models or collection settings
-
----
-
-### 🤖 **RAG Pipeline Operations**
-
-#### **RAG Pipeline**
-```bash
-poetry run rag-pipeline
-```
-- Runs the complete RAG pipeline end-to-end
-- Tests query processing and response generation
-
-#### **Test Retriever**
-```bash
-poetry run test-retriever
-```
-- Tests the retrieval functionality
-- Validates semantic search capabilities
-
----
-
-## 📋 **Common Usage Patterns**
-
-### **Fresh Setup Process**
-```bash
-# 1. Install dependencies
+# Install Python dependencies
 poetry install
 
-# 2. Process and upload data (if needed)
+# Build the local Chroma vector store (skip clean/preprocess/chunk if data/ already exists!!!)
 poetry run clean-data
 poetry run preprocess-data
 poetry run chunk-articles
-poetry run batch-upload
+poetry run rebuild-chroma   # REQUIRED to create the voxeurop_db directory, necessary to get the answers!
 
-# 3. Start the application
+# Create the SQLite tables once
+poetry run flask --app flask_quorial init-db
+
+# Launch the Flask chat app
 poetry run chat-app
 ```
+**Why every step matters:** The repo does not contain your API keys, the Chroma index, or the SQLite database. If you skip any step above, the retriever will have no articles or the chat tables will not exist, and the UI will only return errors.
 
-### **Development Workflow**
-```bash
-# Test RAG functionality
-poetry run test-retriever
+## 3. Everyday Commands
+- `poetry run chat-app` – Run the Flask UI (http://127.0.0.1:5000)  
+- #`poetry run gradio-app` – Minimal Gradio interface for quick RAG checks  
+- `poetry run test-retriever` – Print raw retrieval hits for a sample query  
+- `poetry run rag-pipeline` – Run the entire RAG flow from CLI
 
-# Run Gradio for quick testing
-poetry run gradio-app
+## 4. Data / Index Maintenance
+- Rebuild after changing processed articles:  
+  ```bash
+  rm -rf voxeurop_db
+  poetry run chunk-articles      # only if chunked data changed
+  poetry run rebuild-chroma
+  ```
+- Reset the SQLite DB (warning: deletes chat history):  
+  ```bash
+  rm -f instance/flaskauu.sqlite
+  poetry run flask --app flask_quorial init-db
+  ```
 
-# Launch main Flask application
-poetry run chat-app
-```
+## 5. Script Reference (defined in `pyproject.toml`)
+| Script | Command | Purpose |
+| ------ | ------- | ------- |
+| `chat-app` | `poetry run chat-app` | Flask RAG application |
+| `gradio-app` | `poetry run gradio-app` | Gradio demo UI |
+| `clean-data` | `poetry run clean-data` | Clean raw Voxeurop CSV |
+| `preprocess-data` | `poetry run preprocess-data` | Strip HTML, save JSON |
+| `chunk-articles` | `poetry run chunk-articles` | Split articles into chunks |
+| `rebuild-chroma` | `poetry run rebuild-chroma` | Create/persist embeddings |
+| `rag-pipeline` | `poetry run rag-pipeline` | End-to-end RAG test |
+| `test-retriever` | `poetry run test-retriever` | Retrieval-only sanity check |
 
-### **Data Management**
-```bash
-# Rebuild database with new data
-poetry run rebuild-chroma
-poetry run batch-upload
-
-# Test the updated system
-poetry run rag-pipeline
-```
-
----
-
-## 🛠️ **Poetry Configuration Details**
-
-The scripts are defined in `pyproject.toml` under `[tool.poetry.scripts]`:
-
-```toml
-[tool.poetry.scripts]
-# Main Applications
-chat-app = "run_chat_app:main"
-gradio-app = "src.app_gradio:main"
-
-# Data Processing Scripts
-clean-data = "src.clean_raw_data:main"
-preprocess-data = "src.preprocess:main"
-chunk-articles = "src.chunking_articles:main"
-
-# ChromaDB Management
-upload-chunks = "src.upload_chunk:main"
-batch-upload = "src.batch_upload:main"
-rebuild-chroma = "src.rebuild_chroma:main"
-
-# RAG Pipeline
-rag-pipeline = "src.rag_pipeline:main"
-test-retriever = "src.retriever:main"
-```
-
-Each script points to a `main()` function in the respective module, ensuring consistent entry points across the project.
-
----
-
-## 🎯 **Benefits of Poetry Scripts**
-
-1. **Simplified Commands**: No need to remember complex Python module paths
-2. **Environment Management**: Poetry handles virtual environment activation
-3. **Dependency Resolution**: Ensures all dependencies are available
-4. **Cross-Platform**: Works consistently across Windows, macOS, and Linux
-5. **Professional Workflow**: Industry-standard approach to Python project management
-
----
-
-## 🔧 **Troubleshooting**
-
-### **Script Not Found**
-If you get "script not found" errors:
-```bash
-poetry install  # Reinstall dependencies and scripts
-```
-
-### **Import Errors**
-If you encounter import errors:
-```bash
-# Make sure you're in the project root directory
-cd /path/to/Quorial_SoftwareDev-1
-poetry run chat-app
-```
-
-### **Database Issues**
-If ChromaDB has issues:
-```bash
-poetry run rebuild-chroma  # Rebuild the database
-poetry run batch-upload    # Re-upload data
-```
-
----
-
-## 📚 **Example Usage**
-
-### **Start the Main Application**
-```bash
-$ poetry run chat-app
-Database initialized successfully!
-Starting Chat Application...
-Access the application at: http://127.0.0.1:5000
-Press Ctrl+C to stop the server
- * Serving Flask app 'flask_quorial'
- * Debug mode: on
-```
-
-### **Test RAG Functionality**
-```bash
-$ poetry run test-retriever
-Testing ChromaDB retrieval...
-Query: "EU migration policy"
-Found 5 relevant articles
-Top result: "European Migration Crisis: Policy Responses"
-```
-
-This Poetry setup provides a professional, maintainable way to manage and run all components of the QUORIAL project!
+## 6. Troubleshooting
+- **“Script not found”** → Run `poetry install`
+- **Import errors** → Ensure you’re in the repo root and use `poetry run ...`
+- **Chroma errors / missing results** → Rebuild: `rm -rf voxeurop_db && poetry run rebuild-chroma`
+- **Chats disappearing** → Run `poetry run flask --app flask_quorial init-db` only once; do not delete `instance/flaskauu.sqlite` unless you intend to wipe history.

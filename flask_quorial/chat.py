@@ -16,58 +16,62 @@ src_path = os.path.join(os.path.dirname(__file__), '..', 'src')
 if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
-# Import the retriever function
+# Import the full RAG pipeline
 try:
-    from src.retriever import retrieve
+    from src.rag_pipeline import complete_rag_pipeline
 except ImportError:
-    # Fallback if retriever module is not available
-    def retrieve(query, top_k=5, context_size=2, where=None):
-        return []
+    def complete_rag_pipeline(*_args, **_kwargs):  # type: ignore
+        raise RuntimeError(
+            "RAG pipeline is not available. Verify that src/ is on the PYTHONPATH."
+        )
 
 bp = Blueprint('chat', __name__, url_prefix='/chat')
 
 def generate_rag_response(user_message: str) -> str:
-    """Generate response using semantic search from ChromaDB"""
-    try:
-        # Use semantic search to find relevant articles
-        results = retrieve(
-            query=user_message,
-            top_k=5,
-            context_size=2,
-            where=None
+    """Send the query + retrieved passages to the Mistral LLM for final answers."""
+
+    mistral_key = os.environ.get("MISTRAL_API_KEY")
+    if not mistral_key:
+        return (
+            "Mistral API key missing. Set the MISTRAL_API_KEY environment variable "
+            "before using the chat assistant."
         )
-        
-        if not results:
-            return "I couldn't find any relevant information in the knowledge base for your query."
-        
-        # Format the response with retrieved content
-        response_parts = []
-        response_parts.append(f"Based on your query about '{user_message}', I found the following relevant information:\n")
-        
-        for i, result in enumerate(results[:3], 1):  # Show top 3 results
-            title = result.get("title", "Unknown Article")
-            article_id = result.get("article_id", "N/A")
-            score = result.get("score", 0)
-            content = result.get("combined_content", "")
-            
-            # Truncate content if too long
-            max_content_length = 300
-            if len(content) > max_content_length:
-                content = content[:max_content_length] + "..."
-            
-            response_parts.append(f"\n**{i}. {title}** (ID: {article_id}, Relevance: {score:.3f})")
-            if result.get("summary"):
-                response_parts.append(f"*Summary: {result.get('summary')}*")
-            response_parts.append(f"{content}")
-        
-        # Add note about search method
-        response_parts.append(f"\n\n*Found {len(results)} relevant articles using semantic search.*")
-        
-        return "\n".join(response_parts)
-        
-    except Exception as e:
-        print(f"Error in semantic search: {e}")
-        return f"I encountered an error while searching the knowledge base: {str(e)}"
+
+    mistral_model = os.environ.get("MISTRAL_MODEL", "mistral-small-latest")
+
+    try:
+        rag_result = complete_rag_pipeline(
+            query=user_message,
+            api_key=mistral_key,
+            provider="mistral",
+            model=mistral_model,
+            top_k=8,
+            context_window=2,
+            max_articles=2,
+            where=None,
+        )
+    except Exception as exc:
+        print(f"Error in RAG pipeline: {exc}")
+        return "I encountered an error while generating an answer with the knowledge base."
+
+    answer = (rag_result or {}).get("answer")
+    if not answer:
+        return "I could not generate an answer from the retrieved articles."
+
+    sources = rag_result.get("sources") or []
+    if not sources:
+        return answer
+
+    source_lines = ["Sources:"]
+    for src in sources:
+        idx = src.get("source_index")
+        title = src.get("title") or "Untitled"
+        article_id = src.get("article_id") or "N/A"
+        score = src.get("score")
+        score_text = f", score={score:.3f}" if isinstance(score, (int, float)) else ""
+        source_lines.append(f"[Source {idx}] {title} (article_id={article_id}{score_text})")
+
+    return f"{answer}\n\n" + "\n".join(source_lines)
 
 @bp.route('/')
 @login_required
