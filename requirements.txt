@@ -152,3 +152,5 @@ webcolors==24.11.1
 webencodings==0.5.1
 websocket-client==1.8.0
 websockets==15.0.1
+poetry==2.2.1
+Flask==3.1.2
