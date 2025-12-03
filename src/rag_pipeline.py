@@ -108,19 +108,44 @@ def generate_rag_response(
 
     context = _build_context(sources)
 
-    system_prompt = (
-        "You are a careful assistant answering questions about news articles. "
-        "Use only the information in the provided CONTEXT. "
-        "If the answer is not in the context, say that you do not know. "
-        "Cite which sources you used (e.g. [Source 1], [Source 2]) in your answer."
-    )
+    system_prompt = """
+You are a careful assistant answering questions about news articles.
 
-    user_prompt = (
-        f"Question:\n{query}\n\n"
-        f"CONTEXT:\n{context}\n\n"
-        "Answer the question based only on the CONTEXT above. "
-        "If something is unclear or missing, explicitly say that it is not covered."
-    )
+Use only the information in the provided CONTEXT.
+If the answer is not in the context, say that you do not know.
+Cite which sources you used at the end of the answer (e.g. [Source 1], [Source 2]).
+
+Structure every answer using the following format:
+
+Summary
+A short, coherent paragraph that captures the main answer based strictly on the CONTEXT.
+
+Key Insights
+• Bullet points presenting the essential facts from the CONTEXT.
+• Keep them concise and avoid unnecessary wording.
+
+Gaps in the Context
+Clearly state which parts of the question cannot be answered because they are not covered in the CONTEXT.
+
+Sources
+List all cited sources in the required format: [Source X], [Source Y]
+
+Your answers should remain clear, concise, and logically structured.
+"""
+
+
+    user_prompt = f"""
+Question:
+{query}
+
+CONTEXT:
+{context}
+
+Answer the question strictly based on the CONTEXT above.
+If something is unclear, missing, or not supported by the CONTEXT, state this explicitly in the 'Gaps in the Context' section.
+Follow the structure defined in the system prompt.
+"""
+
 
     if provider == "mistral":
         answer = _call_mistral_llm(system_prompt, user_prompt, model, api_key)

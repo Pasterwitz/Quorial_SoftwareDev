@@ -193,6 +193,7 @@ body {
     padding: 12px 16px;
     border-radius: 18px;
     word-wrap: break-word;
+    white-space: pre-wrap;
 }
 
 .message.user .message-content {
@@ -347,6 +348,7 @@ body {
 </div>
 
 <!-- JavaScript for Chat functionality -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 class ChatApp {
     constructor() {
@@ -459,11 +461,14 @@ class ChatApp {
 
     renderMessages(messages) {
         const container = document.getElementById('chatMessages');
-        container.innerHTML = messages.map(message => `
-            <div class="message ${message.is_user ? 'user' : 'ai'}">
-                <div class="message-content">${message.message}</div>
-            </div>
-        `).join('');
+        container.innerHTML = messages.map(message => {
+            const rendered = this.renderMessageContent(message.message);
+            return `
+                <div class="message ${message.is_user ? 'user' : 'ai'}">
+                    <div class="message-content">${rendered}</div>
+                </div>
+            `;
+        }).join('');
         
         container.scrollTop = container.scrollHeight;
     }
@@ -563,11 +568,23 @@ class ChatApp {
         }
     }
 
+    renderMessageContent(raw) {
+        try {
+            if (window.marked) {
+                return marked.parse(raw);
+            }
+        } catch (err) {
+            console.warn('Markdown parsing failed', err);
+        }
+        return raw.replace(/\n/g, '<br>');
+    }
+
     addMessageToUI(message, isUser) {
         const container = document.getElementById('chatMessages');
         const messageElement = document.createElement('div');
         messageElement.className = `message ${isUser ? 'user' : 'ai'}`;
-        messageElement.innerHTML = `<div class="message-content">${message}</div>`;
+        const rendered = this.renderMessageContent(message);
+        messageElement.innerHTML = `<div class="message-content">${rendered}</div>`;
         container.appendChild(messageElement);
         container.scrollTop = container.scrollHeight;
     }
