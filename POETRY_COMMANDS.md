@@ -8,8 +8,8 @@
 ## 2. First-Time Setup (run every step on each new machine)
 ```bash
 # Clone and enter the repo
-git clone https://.../Quorial_SoftwareDev-1.git
-cd Quorial_SoftwareDev-1
+git clone https://github.com/Pasterwitz/Quorial_SoftwareDev.git
+cd Quorial_SoftwareDev
 
 # Install Python dependencies
 poetry install
