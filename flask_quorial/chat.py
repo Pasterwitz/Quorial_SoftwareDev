@@ -32,15 +32,17 @@ except ImportError:
 
 bp = Blueprint('chat', __name__, url_prefix='/chat')
 
-def generate_rag_response(user_message: str) -> str:
-    """Send the query + retrieved passages to the Mistral LLM for final answers."""
+def generate_rag_response(user_message: str) -> dict:
+    """Send the query + retrieved passages to the Mistral LLM for final answers.
+
+    Returns a dict with keys `answer` (str) and `sources` (list).
+    """
 
     mistral_key = os.environ.get("MISTRAL_API_KEY")
     if not mistral_key:
-        return (
+        return {"answer": (
             "Mistral API key missing. Set the MISTRAL_API_KEY environment variable "
-            "before using the chat assistant."
-        )
+            "before using the chat assistant."), "sources": []}
 
     mistral_model = os.environ.get("MISTRAL_MODEL", "mistral-small-latest")
 
@@ -57,26 +59,14 @@ def generate_rag_response(user_message: str) -> str:
         )
     except Exception as exc:
         print(f"Error in RAG pipeline: {exc}")
-        return "I encountered an error while generating an answer with the knowledge base."
+        return {"answer": "I encountered an error while generating an answer with the knowledge base.", "sources": []}
 
     answer = (rag_result or {}).get("answer")
     if not answer:
-        return "I could not generate an answer from the retrieved articles."
+        return {"answer": "I could not generate an answer from the retrieved articles.", "sources": []}
 
     sources = rag_result.get("sources") or []
-    if not sources:
-        return answer
-
-    source_lines = ["Sources:"]
-    for src in sources:
-        idx = src.get("source_index")
-        title = src.get("title") or "Untitled"
-        article_id = src.get("article_id") or "N/A"
-        score = src.get("score")
-        score_text = f", score={score:.3f}" if isinstance(score, (int, float)) else ""
-        source_lines.append(f"[Source {idx}] {title} (article_id={article_id}{score_text})")
-
-    return f"{answer}\n\n" + "\n".join(source_lines)
+    return {"answer": answer, "sources": sources}
 
 @bp.route('/')
 @login_required
@@ -252,10 +242,12 @@ def send_message(session_id):
         (session_id, message, True)
     )
     
-    # Generate AI response using RAG pipeline
-    ai_response = generate_rag_response(message)
-    
-    # Add AI response
+    # Generate AI response using RAG pipeline (structured output)
+    rag_out = generate_rag_response(message)
+    ai_response = rag_out.get('answer') if isinstance(rag_out, dict) else str(rag_out)
+    sources = rag_out.get('sources') if isinstance(rag_out, dict) else []
+
+    # Add AI response (store only the textual answer)
     db.execute(
         'INSERT INTO chat_messages (session_id, message, is_user) VALUES (?, ?, ?)',
         (session_id, ai_response, False)
@@ -271,7 +263,8 @@ def send_message(session_id):
     
     return jsonify({
         'user_message': message,
-        'ai_response': ai_response
+        'ai_response': ai_response,
+        'sources': sources,
     })
 
 @bp.route('/session/<int:session_id>/delete', methods=['DELETE'])

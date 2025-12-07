@@ -216,7 +216,18 @@ body {
     padding: 12px 16px;
     border-radius: 18px;
     word-wrap: break-word;
-    white-space: pre-wrap;
+    white-space: pre-line;
+    display: inline-block;
+}
+.message-content p {
+    margin: 0 0 0.35em;
+}
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+.message-content ul,
+.message-content ol {
+    margin: 0.35em 0 0.35em 1.25em;
 }
 
 .message.user .message-content {
@@ -316,6 +327,43 @@ body {
     padding: 20px;
     color: #6c757d;
 }
+
+.message-content.generating {
+    font-style: italic;
+    color: #6c757d;
+}
+.message-content .dots {
+    display: inline-block;
+    width: 3ch;
+}
+/* Inline sources rendered inside AI message bubbles */
+.sources-inline {
+    margin-top: 8px;
+    font-size: 0.85em;
+    color: #586069;
+    border-top: 1px solid rgba(0,0,0,0.04);
+    padding-top: 8px;
+}
+.sources-inline .sources-list {
+    margin: 6px 0 0 18px;
+    padding: 0;
+}
+.sources-inline .sources-list li { margin-bottom: 4px; }
+
+/* Make the 'Sources' header visually prominent, but keep article titles normal weight */
+.sources-inline .sources-header {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.sources-inline .sources-list li strong {
+    font-weight: normal;
+}
+.sources-inline .source-meta {
+    color: #6c757d;
+    margin-left: 6px;
+    font-style: normal;
+}
+
 </style>
 
 <!-- Top Header -->
@@ -538,6 +586,22 @@ class ChatApp {
         this.addMessageToUI(message, true);
         messageInput.value = '';
 
+        // Show a generating placeholder (with animated dots)
+        const container = document.getElementById('chatMessages');
+        const generatingEl = document.createElement('div');
+        generatingEl.className = 'message ai';
+        generatingEl.innerHTML = `<div class="message-content generating">Generating response<span class="dots"></span></div>`;
+        container.appendChild(generatingEl);
+        container.scrollTop = container.scrollHeight;
+
+        let dotCount = 0;
+        const interval = setInterval(() => {
+            dotCount = (dotCount + 1) % 4;
+            const dots = '.'.repeat(dotCount);
+            const span = generatingEl.querySelector('.dots');
+            if (span) span.textContent = dots;
+        }, 500);
+
         try {
             const response = await fetch(`/chat/session/${this.currentSessionId}/message`, {
                 method: 'POST',
@@ -546,15 +610,42 @@ class ChatApp {
                 },
                 body: JSON.stringify({ message })
             });
-            
-            const data = await response.json();
-            
-            // Add AI response to UI
-            this.addMessageToUI(data.ai_response, false);
-            
+
+            // try to parse JSON body; if parsing fails, this will throw
+            let data = {};
+            try {
+                data = await response.json();
+            } catch (parseErr) {
+                console.warn('Failed to parse JSON response', parseErr);
+            }
+
+            // Remove generating placeholder before adding the real message
+            try { generatingEl.remove(); } catch (_) {}
+            clearInterval(interval);
+
+            // If there's an AI answer, show it. Sources (if present) are passed through.
+            const aiText = data && data.ai_response ? data.ai_response : null;
+            if (aiText) {
+                this.addMessageToUI(aiText, false, data.sources || []);
+            } else {
+                // No answer in response — show a gentle fallback message
+                this.addMessageToUI('Sorry, I could not produce an answer.', false);
+            }
+
         } catch (error) {
             console.error('Error sending message:', error);
-            this.addMessageToUI('Sorry, there was an error processing your message.', false);
+            // Replace the generating placeholder with an error message (in-place)
+            try {
+                if (generatingEl && container.contains(generatingEl)) {
+                    generatingEl.innerHTML = `<div class="message-content">Sorry, there was an error processing your message.</div>`;
+                } else {
+                    this.addMessageToUI('Sorry, there was an error processing your message.', false);
+                }
+            } catch (cleanupErr) {
+                console.error('Error updating generating element after failure:', cleanupErr);
+                this.addMessageToUI('Sorry, there was an error processing your message.', false);
+            }
+            clearInterval(interval);
         } finally {
             // Re-enable input
             messageInput.disabled = false;
@@ -652,12 +743,52 @@ class ChatApp {
         return raw.replace(/\n/g, '<br>');
     }
 
-    addMessageToUI(message, isUser) {
+    // Minimal HTML escape for source titles/scores
+    escapeHtml(str) {
+        if (typeof str !== 'string') return '' + str;
+        return str.replace(/[&<>\"]/g, function(tag) {
+            const charsToReplace = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;'
+            };
+            return charsToReplace[tag] || tag;
+        });
+    }
+
+    addMessageToUI(message, isUser, sources) {
         const container = document.getElementById('chatMessages');
         const messageElement = document.createElement('div');
         messageElement.className = `message ${isUser ? 'user' : 'ai'}`;
         const rendered = this.renderMessageContent(message);
         messageElement.innerHTML = `<div class="message-content">${rendered}</div>`;
+        // If this is an AI message and sources are provided, render them inline under the answer.
+        try {
+            if (!isUser && Array.isArray(sources) && sources.length) {
+                const mc = messageElement.querySelector('.message-content');
+                if (mc) {
+                    const sourcesDiv = document.createElement('div');
+                    sourcesDiv.className = 'sources-inline';
+                    const listHtml = sources.map(s => {
+                        const title = this.escapeHtml(s.title || s.name || 'Sources:');
+                        let scoreText = '';
+                        if (s.score) {
+                            scoreText = String(s.score);
+                        } else if (typeof s.score_value === 'number') {
+                            scoreText = (s.score_value * 100).toFixed(1) + '%';
+                        }
+                        scoreText = this.escapeHtml(scoreText);
+                        return `<li><strong>${title}</strong> <span class="source-meta">(Relevance: ${scoreText})</span></li>`;
+                    }).join('');
+                    sourcesDiv.innerHTML = `<div class="sources-header">Sources</div><ol class="sources-list">${listHtml}</ol>`;
+                    mc.appendChild(sourcesDiv);
+                }
+            }
+        } catch (err) {
+            // Sources rendering must not break the whole UI. Log and continue.
+            console.warn('Failed to render sources inline', err);
+        }
         container.appendChild(messageElement);
         container.scrollTop = container.scrollHeight;
     }

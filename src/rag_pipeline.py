@@ -20,9 +20,9 @@ def _build_context(sources: List[Dict[str, Any]]) -> str:
     blocks: List[str] = []
     for i, src in enumerate(sources, start=1):
         title = src.get("title") or "Unknown title"
-        article_id = src.get("article_id", "N/A")
         summary = src.get("summary") or ""
-        header = f"[Source {i}] {title} (article_id={article_id})"
+        # Do not expose internal article IDs in the context header; include title only
+        header = f"[Source {i}] {title}"
         if summary:
             header += f"\nSummary: {summary}"
         content = (src.get("combined_content") or "").strip()
@@ -111,11 +111,10 @@ def generate_rag_response(
     system_prompt = """
 You are a careful assistant answering questions about news articles.
 
-Use only the information in the provided CONTEXT.
+Use only the information in the provided context.
 If the answer is not in the context, say that you do not know.
-Cite which sources you used at the end of the answer (e.g. [Source 1], [Source 2]).
 
-Structure every answer using the following format:
+Structure every answer using the following format and bold section headers:
 
 Summary
 A short, coherent paragraph that captures the main answer based strictly on the CONTEXT.
@@ -126,9 +125,6 @@ Key Insights
 
 Gaps in the Context
 Clearly state which parts of the question cannot be answered because they are not covered in the CONTEXT.
-
-Sources
-List all cited sources in the required format: [Source X], [Source Y]
 
 Your answers should remain clear, concise, and logically structured.
 """
@@ -154,13 +150,23 @@ Follow the structure defined in the system prompt.
 
     source_infos = []
     for i, s in enumerate(sources, start=1):
+        # Return only the title and relevance score (no internal article_id),
+        # format the score as a percentage string for display purposes,
+        # and ensure chunk indices are available for debugging if needed.
+        raw_score = s.get("score")
+        pct_score = None
+        try:
+            if raw_score is not None:
+                pct_score = f"{float(raw_score) * 100:.1f}%"
+        except Exception:
+            pct_score = str(raw_score)
+
         source_infos.append(
             {
                 "source_index": i,
-                "article_id": s.get("article_id"),
                 "title": s.get("title"),
                 "summary": s.get("summary"),
-                "score": s.get("score"),
+                "score": pct_score,
                 "chunk_indices": [c["chunk_idx"] for c in s.get("chunk_details", [])],
             }
         )
@@ -205,7 +211,37 @@ def complete_rag_pipeline(
         }
 
     # Step 2: pick a subset of articles for the LLM context
-    top_sources = hits[:max_articles]
+    # Deduplicate by article_id (or title when article_id is missing). If the
+    # retriever returns multiple chunks from the same article, we want only one
+    # entry per article in the final context. Keep the hit with the highest score.
+    seen: dict = {}
+    ordered_hits: List[Dict[str, Any]] = []
+    for h in hits:
+        aid = h.get("article_id") or h.get("title") or None
+        # Use a composite key for None to preserve uniqueness per-hit
+        key = aid if aid is not None else id(h)
+        if key not in seen:
+            seen[key] = h
+            ordered_hits.append(h)
+        else:
+            # replace with higher-scoring hit if available
+            try:
+                prev_score = float(seen[key].get("score") or 0.0)
+                cur_score = float(h.get("score") or 0.0)
+            except Exception:
+                prev_score = seen[key].get("score") or 0.0
+                cur_score = h.get("score") or 0.0
+            if cur_score > prev_score:
+                seen[key] = h
+                # also update ordered_hits
+                for idx, oh in enumerate(ordered_hits):
+                    if (oh.get("article_id") or oh.get("title") or None) == (h.get("article_id") or h.get("title") or None):
+                        ordered_hits[idx] = h
+                        break
+
+    # Now sort the unique articles by descending score and pick top max_articles
+    ordered_hits.sort(key=lambda x: float(x.get("score") or 0.0), reverse=True)
+    top_sources = ordered_hits[:max_articles]
 
     # Step 3: generate answer
     result = generate_rag_response(
@@ -226,6 +262,17 @@ if __name__ == "__main__":
     ]
 
     api_key = os.environ.get("OPENAI_API_KEY")
+    mistral_key = os.environ.get("MISTRAL_API_KEY")
+
+    if api_key:
+        provider = "openai"
+    elif mistral_key:
+        provider = "mistral"
+        api_key = mistral_key
+    else:
+        provider = "openai"
+
+    print(f"Using provider={provider}")
 
     for q in test_queries:
         print("\n" + "=" * 80)
@@ -239,12 +286,12 @@ if __name__ == "__main__":
             context_window=2,
             max_articles=2,
             where=None,
+            provider=provider,
         )
 
         print("\nANSWER:\n", out["answer"])
         print("\nSOURCES:")
         for s in out["sources"]:
             print(
-                f"  [Source {s['source_index']}] {s.get('title')!r} "
-                f"(article_id={s.get('article_id')}, score={s.get('score')})"
-            )
+                f"{s['source_index']}. {s.get('title')!r} (relevance=({s.get('score')})*100+%"
+                )

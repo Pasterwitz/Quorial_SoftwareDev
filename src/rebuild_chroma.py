@@ -23,38 +23,44 @@ def _sanitize_metadata(meta: dict | None) -> dict:
                 continue
     return out
 
-ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name="all-MiniLM-L6-v2"
-)
+def main() -> None:
+    """Rebuild the Chroma collection from the chunked JSON file."""
 
-CONFIG = get_chroma_config()
+    ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+        model_name="all-MiniLM-L6-v2"
+    )
 
-client = chromadb.PersistentClient(path=CONFIG.path)
-col = client.get_or_create_collection(
-    name=CONFIG.collection,
-    metadata={"hnsw:space": "cosine"},
-    embedding_function=ef,
-)
+    CONFIG = get_chroma_config()
 
-with open(CONFIG.chunked_json, "r", encoding="utf-8") as f:
-    data = json.load(f)
+    client = chromadb.PersistentClient(path=CONFIG.path)
+    col = client.get_or_create_collection(
+        name=CONFIG.collection,
+        metadata={"hnsw:space": "cosine"},
+        embedding_function=ef,
+    )
 
-# Expect items like: {"document": "...", "metadata": {"article_id": ..., "chunk_idx": ...}}
-BATCH = 512
-ids, docs, metas = [], [], []
-for i, item in enumerate(data):
-    doc = item.get("document") or ""
-    if not isinstance(doc, str) or not doc.strip():
-        continue  # skip empty docs
-    ids.append(item.get("id") or f"chunk_{i}")
-    docs.append(doc)
-    metas.append(_sanitize_metadata(item.get("metadata", {})))
+    with open(CONFIG.chunked_json, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-    if len(ids) == BATCH:
+    # Expect items like: {"document": "...", "metadata": {"article_id": ..., "chunk_idx": ...}}
+    BATCH = 512
+    ids, docs, metas = [], [], []
+    for i, item in enumerate(data):
+        doc = item.get("document") or ""
+        if not isinstance(doc, str) or not doc.strip():
+            continue  # skip empty docs
+        ids.append(item.get("id") or f"chunk_{i}")
+        docs.append(doc)
+        metas.append(_sanitize_metadata(item.get("metadata", {})))
+
+        if len(ids) == BATCH:
+            col.add(ids=ids, documents=docs, metadatas=metas)
+            ids, docs, metas = [], [], []
+
+    if ids:
         col.add(ids=ids, documents=docs, metadatas=metas)
-        ids, docs, metas = [], [], []
 
-if ids:
-    col.add(ids=ids, documents=docs, metadatas=metas)
+    print(f"Rebuilt Chroma collection successfully. Count = {col.count()}")
 
-print(f"Rebuilt Chroma collection successfully. Count = {col.count()}")
+if __name__ == '__main__':
+    main()
