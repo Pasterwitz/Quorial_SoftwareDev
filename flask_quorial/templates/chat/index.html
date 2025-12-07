@@ -30,6 +30,12 @@ body {
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .app-title {
     color: white;
     font-size: 24px;
@@ -79,26 +85,45 @@ body {
     left: 0;
 }
 
+.sidebar-overlay {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 999;
+}
+
+.sidebar-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 .sidebar-header {
     padding: 20px;
     border-bottom: 1px solid #495057;
 }
 
 .sidebar-toggle {
-    position: fixed;
-    top: 70px;
-    left: 10px;
-    z-index: 1001;
-    background-color: #007bff;
-    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     color: white;
-    padding: 10px;
-    border-radius: 5px;
+    padding: 8px 14px;
+    border-radius: 999px;
     cursor: pointer;
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
 }
 
 .sidebar-toggle:hover {
-    background-color: #0056b3;
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .hamburger {
@@ -368,19 +393,21 @@ body {
 
 <!-- Top Header -->
 <div class="top-header">
-    <div class="app-title">Quorial Chat</div>
+    <div class="header-left">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle chat history">
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            History
+        </button>
+        <div class="app-title">Quorial Chat</div>
+    </div>
     <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
 </div>
 
 <!-- Chat Sidebar -->
-<button class="sidebar-toggle" id="sidebarToggle">
-    <div class="hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
-    </div>
-</button>
-
 <div class="chat-sidebar" id="chatSidebar">
     <div class="sidebar-header">
         <h5>Chat History</h5>
@@ -390,6 +417,8 @@ body {
         <!-- Sessions will be loaded here -->
     </div>
 </div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <!-- Main Chat Area -->
 <div class="chat-container">
@@ -427,6 +456,10 @@ class ChatApp {
         this.currentSessionId = null;
         this.sessions = [];
         this.exportBtn = document.getElementById('exportBtn');
+        this.sidebar = document.getElementById('chatSidebar');
+        this.sidebarToggle = document.getElementById('sidebarToggle');
+        this.overlay = document.getElementById('sidebarOverlay');
+        this.main = document.getElementById('chatMain');
         this.init();
     }
 
@@ -438,17 +471,42 @@ class ChatApp {
     }
 
     bindEvents() {
-        document.getElementById('sidebarToggle').addEventListener('click', () => this.toggleSidebar());
+        this.sidebarToggle.addEventListener('click', () => this.toggleSidebar());
         document.getElementById('newChatBtn').addEventListener('click', () => this.createNewChat());
         document.getElementById('chatForm').addEventListener('submit', (e) => this.sendMessage(e));
         this.exportBtn.addEventListener('click', () => this.exportCurrentSession());
+        if (this.overlay) {
+            this.overlay.addEventListener('click', () => this.closeSidebar());
+        }
+
+        document.addEventListener('click', (event) => {
+            if (!this.sidebar.classList.contains('open')) return;
+            if (this.sidebar.contains(event.target) || this.sidebarToggle.contains(event.target)) {
+                return;
+            }
+            this.closeSidebar();
+        });
     }
 
     toggleSidebar() {
-        const sidebar = document.getElementById('chatSidebar');
-        const main = document.getElementById('chatMain');
-        sidebar.classList.toggle('open');
-        main.classList.toggle('sidebar-open');
+        const isOpen = this.sidebar.classList.toggle('open');
+        this.main.classList.toggle('sidebar-open', isOpen);
+        this.updateOverlay(isOpen);
+    }
+
+    closeSidebar() {
+        this.sidebar.classList.remove('open');
+        this.main.classList.remove('sidebar-open');
+        this.updateOverlay(false);
+    }
+
+    updateOverlay(visible) {
+        if (!this.overlay) return;
+        if (visible) {
+            this.overlay.classList.add('visible');
+        } else {
+            this.overlay.classList.remove('visible');
+        }
     }
 
     setExportButtonState(isEnabled) {
@@ -472,17 +530,20 @@ class ChatApp {
             return;
         }
 
-        container.innerHTML = this.sessions.map(session => `
-            <div class="chat-session-item" data-session-id="${session.id}">
-                <div onclick="chatApp.selectSession(${session.id})">
-                    <div class="session-title">${session.title}</div>
-                    <div class="session-date">${new Date(session.updated_at).toLocaleDateString()}</div>
+        container.innerHTML = this.sessions.map(session => {
+            const activeClass = this.currentSessionId === session.id ? ' active' : '';
+            return `
+                <div class="chat-session-item${activeClass}" data-session-id="${session.id}">
+                    <div onclick="chatApp.selectSession(${session.id})">
+                        <div class="session-title">${session.title}</div>
+                        <div class="session-date">${new Date(session.updated_at).toLocaleDateString()}</div>
+                    </div>
+                    <div class="session-actions">
+                        <button class="delete-btn" onclick="event.stopPropagation(); chatApp.deleteSession(${session.id})">Delete</button>
+                    </div>
                 </div>
-                <div class="session-actions">
-                    <button class="delete-btn" onclick="event.stopPropagation(); chatApp.deleteSession(${session.id})">Delete</button>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     async createNewChat() {
@@ -630,6 +691,11 @@ class ChatApp {
             } else {
                 // No answer in response — show a gentle fallback message
                 this.addMessageToUI('Sorry, I could not produce an answer.', false);
+            }
+
+            if (data && data.session_title) {
+                document.getElementById('chatTitle').textContent = data.session_title;
+                this.loadSessions().catch(err => console.error('Error refreshing sessions:', err));
             }
 
         } catch (error) {

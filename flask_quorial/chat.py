@@ -5,7 +5,7 @@
 import os
 import sys
 from io import BytesIO
-import textwrap
+from xml.sax.saxutils import escape
 #from datetime import datetime
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify,
@@ -13,8 +13,11 @@ from flask import (
 )
 from flask_quorial.db import get_db
 from flask_quorial.auth import login_required
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 # Add the src directory to Python path for imports
 src_path = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -31,6 +34,23 @@ except ImportError:
         )
 
 bp = Blueprint('chat', __name__, url_prefix='/chat')
+
+def derive_session_title_from_message(message: str) -> str:
+    """Create a concise session title based on the first user question."""
+    cleaned = " ".join(message.strip().split())
+    if not cleaned:
+        return "New Chat"
+
+    words = cleaned.split()
+    snippet = " ".join(words[:8])
+
+    # Enforce a hard limit so titles stay tidy in the sidebar
+    if len(snippet) > 60:
+        snippet = snippet[:57].rstrip() + "..."
+    elif len(words) > 8:
+        snippet = f"{snippet}..."
+
+    return snippet
 
 def generate_rag_response(user_message: str) -> dict:
     """Send the query + retrieved passages to the Mistral LLM for final answers.
@@ -142,52 +162,80 @@ def export_session_pdf(session_id):
     ).fetchall()
 
     pdf_buffer = BytesIO()
-    pdf = canvas.Canvas(pdf_buffer, pagesize=letter)
-    width, height = letter
-    margin = 50
-    line_height = 16
-    text_width = 90  # characters per line for wrapping
+    doc = SimpleDocTemplate(
+        pdf_buffer,
+        pagesize=letter,
+        leftMargin=40,
+        rightMargin=40,
+        topMargin=50,
+        bottomMargin=50,
+        title=f"Chat Export - {session_row['title']}"
+    )
 
-    pdf.setTitle(f"Chat Export - {session_row['title']}")
+    styles = getSampleStyleSheet()
+    title_style = styles['Title']
+    metadata_style = ParagraphStyle(
+        'Metadata',
+        parent=styles['Normal'],
+        fontSize=11,
+        leading=16,
+    )
 
-    def ensure_space(current_y: float) -> float:
-        """Start a new page if there's not enough room for another line."""
-        if current_y <= margin:
-            pdf.showPage()
-            pdf.setFont('Helvetica', 10)
-            return height - margin
-        return current_y
+    bubble_margin = doc.width * 0.15
 
-    y = height - margin
-    pdf.setFont('Helvetica-Bold', 16)
-    pdf.drawString(margin, y, 'Quorial Chat Export')
-    y -= line_height * 1.5
-    pdf.setFont('Helvetica', 11)
-    pdf.drawString(margin, y, f"Session: {session_row['title']}")
-    y -= line_height
-    pdf.drawString(margin, y, f"Created: {session_row['created_at']}")
-    y -= line_height
-    pdf.drawString(margin, y, f"Last updated: {session_row['updated_at']}")
-    y -= line_height * 1.5
-    pdf.setFont('Helvetica', 10)
+    user_style = ParagraphStyle(
+        'UserMessage',
+        parent=styles['BodyText'],
+        fontSize=11,
+        leading=16,
+        textColor=colors.HexColor('#000000'),
+        leftIndent=bubble_margin,
+        rightIndent=0,
+        alignment=TA_RIGHT,
+        spaceBefore=8,
+        spaceAfter=8,
+    )
+
+    ai_style = ParagraphStyle(
+        'AIMessage',
+        parent=styles['BodyText'],
+        fontSize=11,
+        leading=16,
+        textColor=colors.HexColor('#212529'),
+        leftIndent=0,
+        rightIndent=bubble_margin,
+        alignment=TA_LEFT,
+        spaceBefore=8,
+        spaceAfter=8,
+    )
+
+    story = [
+        Paragraph('Quorial Chat Export', title_style),
+        Spacer(1, 12),
+        Paragraph(f"Session: <b>{escape(session_row['title'])}</b>", metadata_style),
+        Paragraph(f"Created: {session_row['created_at']}", metadata_style),
+        Spacer(1, 16)
+    ]
 
     if not messages:
-        y = ensure_space(y)
-        pdf.drawString(margin, y, 'No messages in this chat session yet.')
+        story.append(Paragraph('No messages in this chat session yet.', metadata_style))
     else:
         for message in messages:
-            role = 'You' if message['is_user'] else 'Quorial'
-            entry = f"[{message['timestamp']}] {role}: {message['message']}"
-            lines = textwrap.wrap(entry, width=text_width) or ['']
+            is_user = bool(message['is_user'])
+            role = 'You' if is_user else 'Quorial'
+            timestamp = message['timestamp']
+            escaped_body = escape(message['message'] or '').replace('\n', '<br/>')
+            block_html = (
+                f"<b>{role}</b>"
+                f"<br/><font size=9 color='#6c757d'>{timestamp}</font>"
+                f"<br/>{escaped_body}"
+            )
 
-            for line in lines:
-                y = ensure_space(y)
-                pdf.drawString(margin, y, line)
-                y -= line_height
+            style = user_style if is_user else ai_style
+            story.append(Paragraph(block_html, style))
+            story.append(Spacer(1, 4))
 
-            y -= line_height / 2
-
-    pdf.save()
+    doc.build(story)
     pdf_buffer.seek(0)
 
     filename = f"chat-session-{session_id}.pdf"
@@ -235,6 +283,12 @@ def send_message(session_id):
     
     if not message:
         return jsonify({'error': 'Message cannot be empty'}), 400
+
+    existing_count_row = db.execute(
+        'SELECT COUNT(*) AS cnt FROM chat_messages WHERE session_id = ?',
+        (session_id,)
+    ).fetchone()
+    is_first_user_message = existing_count_row is None or existing_count_row['cnt'] == 0
     
     # Add user message
     db.execute(
@@ -253,18 +307,26 @@ def send_message(session_id):
         (session_id, ai_response, False)
     )
     
-    # Update session timestamp
-    db.execute(
-        'UPDATE chat_sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        (session_id,)
-    )
-    
+    session_title = None
+    if is_first_user_message:
+        session_title = derive_session_title_from_message(message)
+        db.execute(
+            'UPDATE chat_sessions SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (session_title, session_id)
+        )
+    else:
+        db.execute(
+            'UPDATE chat_sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            (session_id,)
+        )
+
     db.commit()
-    
+
     return jsonify({
         'user_message': message,
         'ai_response': ai_response,
         'sources': sources,
+        'session_title': session_title,
     })
 
 @bp.route('/session/<int:session_id>/delete', methods=['DELETE'])
