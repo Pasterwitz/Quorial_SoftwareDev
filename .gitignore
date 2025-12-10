@@ -241,3 +241,6 @@ flask_quorial/static/*.png
 data/raw/.~lock.voxeurop_content.csv#
 data/raw/voxeurop_content.ods
 data/raw/voxeurop_content.csv
+
+
+data/certs/

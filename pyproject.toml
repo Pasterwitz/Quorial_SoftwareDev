@@ -22,6 +22,8 @@ bs4 = "^0.0.2"
 langchain-text-splitters = "^1.0.0"
 trafilatura = "^2.0.0"
 reportlab = "^4.1.0"
+pytest = "^9.0.2"
+pytest-flask = "^1.3.0"
 
 [tool.poetry.scripts]
 # Main Applications
@@ -39,6 +41,9 @@ rebuild-chroma = "src.rebuild_chroma:main"
 # RAG Pipeline
 rag-pipeline = "src.rag_pipeline:main"
 test-retriever = "src.retriever:main"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.2"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

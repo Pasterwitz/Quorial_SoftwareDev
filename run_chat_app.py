@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Simple script to run the Chat Flask application."""
 
+from logging import debug
 import os
 import sys
 
@@ -18,11 +19,18 @@ def main():
 
     app = create_app()
     
-    print("Starting Chat Application (database will not be reset automatically)...")
-    print("Access the application at: http://127.0.0.1:5000")
-    print("Press Ctrl+C to stop the server")
+    certificate_path = os.environ.get("CERTIFICATE_PATH")
+    if certificate_path:
+        
+        print(f"Using SSL certificates from {certificate_path}")
+        
+        app.run(ssl_context=(os.path.join(certificate_path, 'fullchain1.pem'), os.path.join(certificate_path, 'privkey1.pem')), debug=True, host='0.0.0.0', port=443)
+    else:
+        app.run(debug=True, host='127.0.0.1', port=5000)
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    
 
 if __name__ == '__main__':
+    
     main()
+    
