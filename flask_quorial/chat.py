@@ -1,16 +1,10 @@
-# chat.py
 # Chat functionality for Flask application
 
-#import json
 import os
 import sys
 from io import BytesIO
 from xml.sax.saxutils import escape
-#from datetime import datetime
-from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify,
-    send_file
-)
+from flask import (Blueprint, g, render_template, request, jsonify, send_file)
 from flask_quorial.db import get_db
 from flask_quorial.auth import login_required
 from reportlab.lib import colors
@@ -79,7 +73,7 @@ def generate_rag_response(user_message: str) -> dict:
         )
     except Exception as exc:
         print(f"Error in RAG pipeline: {exc}")
-        return {"answer": "I encountered an error while generating an answer with the knowledge base.", "sources": []}
+        return {"answer": "I encountered an error (APIKey missing) while generating an answer with the knowledge base.", "sources": []}
 
     answer = (rag_result or {}).get("answer")
     if not answer:

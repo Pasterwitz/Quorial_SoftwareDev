@@ -1,5 +1,3 @@
-# __init__.py
-# last change 11 March 23
 # - contains application factory
 # - tells Python that the flaskr/ directory is a package
 import os
@@ -28,9 +26,9 @@ def create_app(test_config=None):
     # flush needed as stdout is BUFFERED
     print('Database created...', flush=True)
 
-    if test_config is None:
+    if test_config is not None:
         # load the instance config, if it exists, when not testing
-        app.config.from_mapping(test_config)
+        app.config.update(test_config)
 
     #ensure the instance folder exists - Flask does it not automatically
     try:
@@ -46,8 +44,8 @@ def create_app(test_config=None):
     app.register_blueprint(auth.bp)
 
     # no url_prefix -> index view at
-    from . import auu
-    app.register_blueprint(auu.bp)
+    from . import state
+    app.register_blueprint(state.bp)
     app.add_url_rule('/', endpoint='index')
 
     # Removed exams and library blueprints for chat-only app

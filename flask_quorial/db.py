@@ -1,67 +1,49 @@
-# last change 11 March 23
-
-import sqlite3
-
-import click
-
-# current app is object that points to flask application
-# g is a special object, unique for each request -> stores data
-from flask import current_app, g
+import sqlite3 
+import click  # CLI helper to register custom Flask commands.
+from flask import current_app, g  # current_app points to the active Flask app; g stores request-scoped data.
 
 def get_db():
-        print('get_db(): before db is accessed...', flush=True)
+        print('get_db(): before db is accessed...', flush=True)  # Trace whenever a DB connection is requested.
 
-        # connection stored and reused if not created
+        # Lazily create and cache a connection the first time this request needs it.
         if 'db' not in g:
-            # establish a connection to db file
+            # Open a connection to the SQLite file specified in the Flask config.
             g.db = sqlite3.connect(
                 current_app.config['DATABASE'],
-                detect_types=sqlite3.PARSE_DECLTYPES
+                detect_types=sqlite3.PARSE_DECLTYPES  # Enable automatic conversion of SQLite types to Python types.
             )
-            # connection returns row
+            # Configure the connection to return rows as dict-like objects for convenient column access.
             g.db.row_factory = sqlite3.Row
 
-        return g.db
+        return g.db  # Reuse the cached connection for the rest of the request.
 
 def close_db(e=None):
-    db = g.pop('db', None)
+    db = g.pop('db', None)  # Remove and retrieve the cached connection, if any.
 
-    # if connection exists -> closed
+    # Close the connection to avoid leaking resources.
     if db is not None:
         db.close()
 
 def init_db():
-    #return database connection
-    db = get_db()
-    # flush needed as stdout is BUFFERED
-    print('init_db(): get_db()...', flush=True)
+    db = get_db()  # Obtain the shared connection for initialization work.
+    print('init_db(): get_db()...', flush=True)  # Log that initialization is underway.
 
-    #open_resource opens file relative to flask_auu package
-    #create tables etc
+    # Create the schema from the bundled SQL file (path is relative to the Flask package).
     with current_app.open_resource('tools/schema.sql') as f:
-        db.executescript(f.read().decode('utf8'))
-        print('init_db(): schema successfully created...', flush=True)
+        db.executescript(f.read().decode('utf8'))  # Execute the entire schema script at once.
+        print('init_db(): schema successfully created...', flush=True)  # Confirm schema creation.
 
-    #open_resource opens file relative to flask_auu package
-    #insert data
+    # Populate the tables with seed data using the second SQL script.
     with current_app.open_resource('tools/db_insertdata.sql') as f:
-        db.executescript(f.read().decode('utf8'))
-        print('init_db(): data successfully inserted...', flush=True)
+        db.executescript(f.read().decode('utf8'))  # Insert the initial content bundled with the project.
+        print('init_db(): data successfully inserted...', flush=True)  # Confirm data insertion.
 
-#defines command line command init-db that calls init_db function
-#   and shows success message to the user
-# DO: flask --app flask_auu init-db BEFORE db is used
 @click.command('init-db')
 def init_db_command():
     """Clear the existing data and create new tables."""
-    init_db()
-    print('init_db_command(): init_db() done...', flush=True)
+    init_db()  # Run the initialization logic when the CLI command is invoked.
+    print('init_db_command(): init_db() done...', flush=True)  # Provide feedback to the terminal user.
 
-#register close_db and init_db_command with app instance
-# due to using a factory function, the instance is not available when writing the functions
-# solution: function that takes an app and does registration
 def init_app(app):
-        # Flask will call function when cleaning up
-        app.teardown_appcontext(close_db)
-        # new command, can be called with flask
-        app.cli.add_command(init_db_command)
+        app.teardown_appcontext(close_db)  # Register the cleanup hook so connections close after each request.
+        app.cli.add_command(init_db_command)  # Make `flask init-db` available via the CLI.

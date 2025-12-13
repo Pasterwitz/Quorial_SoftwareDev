@@ -1,11 +1,9 @@
-# last change 11 March 23
-
 import functools
+from sqlite3 import IntegrityError
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
 from werkzeug.security import check_password_hash, generate_password_hash
-
 from flask_quorial.db import get_db
 
 #create blueprint named auth
@@ -13,7 +11,7 @@ bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 # associate URL /register with register view function
 # when Flask receives request to /auth/register ->
-#    will call register view and return value as response
+# will call register view and return value as response
 @bp.route('/register', methods=('GET', 'POST'))
 def register():
     # when user submits form
@@ -38,7 +36,7 @@ def register():
                     (username, generate_password_hash(password)),
                 )
                 db.commit()
-            except db.IntegrityErrror:
+            except IntegrityError:
                 error = f"User {username} is already registered."
             else:
                 # after storing usr/pw-> redirect to login
@@ -81,7 +79,7 @@ def login():
     return render_template('auth/login.html')
 
 #register a function that runs before view function
-#    no matter what URL is requested
+# no matter what URL is requested
 # load_logged_in_user checks if user id is stored in session
 @bp.before_app_request
 def load_logged_in_user():
@@ -102,9 +100,6 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-#using the lib functionality requires a user to be logged in
-#use a decorator to check for each view if login!
-# this decorator is used for all the online lib functionality
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):

@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
-
 from dotenv import load_dotenv
 
 # Ensure .env (if present) is loaded before we read env vars.
