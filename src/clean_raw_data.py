@@ -18,11 +18,11 @@ def delete_pairwise_half_duplicates(df, lang_a, lang_b, seed=42, ru_preserve=Fal
 
     Returns the modified DataFrame.
     """
-    # collect ids present in each language
+    # Collect ids present in each language
     ids_a = set(df.loc[df['languageCode'] == lang_a, 'contentItemUid'].dropna().unique())
     ids_b = set(df.loc[df['languageCode'] == lang_b, 'contentItemUid'].dropna().unique())
 
-    # candidates are ids appearing in BOTH languages
+    # Candidates are ids appearing in both languages
     candidates = list(ids_a & ids_b)
     total_candidates = len(candidates)
     print(f'Pairwise candidates for {lang_a}/{lang_b}: {total_candidates}')
@@ -33,13 +33,12 @@ def delete_pairwise_half_duplicates(df, lang_a, lang_b, seed=42, ru_preserve=Fal
     rnd.shuffle(candidates)
 
     if ru_preserve:
-        # find which side is the non-ru language
+        # Find which side is the non-ru language
         if lang_a == 'ru':
             non_ru = lang_b
         elif lang_b == 'ru':
             non_ru = lang_a
         else:
-            # nothing to do
             return df
 
         before = len(df)
@@ -49,7 +48,7 @@ def delete_pairwise_half_duplicates(df, lang_a, lang_b, seed=42, ru_preserve=Fal
         print(f'RU-preserve: removed {removed} rows from {non_ru}. Line count after: {len(df)}')
         return df
 
-    # normal half-split
+    # Normal half-split
     half = total_candidates // 2
     assigned_a = set(candidates[: half + (total_candidates % 2)])
     assigned_b = set(candidates[half + (total_candidates % 2):])
@@ -63,14 +62,14 @@ def delete_pairwise_half_duplicates(df, lang_a, lang_b, seed=42, ru_preserve=Fal
     return df
 
 def only_keep_languages(df, languages=['en', 'fr', 'de', 'es', 'it']):
-    # only keep rows with languageCode in the specified languages
+    # Only keep rows with languageCode in the specified languages
     df = df[df['languageCode'].isin(languages)]
     print(f"Line count after keeping only specified languages: {len(df)} lines")
     return df
 
 def clean_data(input_path):
     # Get line count (rows) of a csv file or a text file or a json file
-    #inspect the column contentItemUids
+    # Inspect the column contentItemUids
     if Path(input_path).suffix == '.csv' or Path(input_path).suffix == '.json' or Path(input_path).suffix == '.txt':
         line_count = sum(1 for line in open(input_path, 'r', encoding='utf-8'))
         print(f"Line count: {line_count} lines")
@@ -78,65 +77,65 @@ def clean_data(input_path):
             df=pd.read_csv(input_path)
             print("Column 'contentItemUid' statistics:")
             print(df['contentItemUid'].describe())
-            #show line account of df
+            # Show line count of df
             print(f"Line count: {len(df)} lines")
-            # only keep relevant languages
+            # Only keep relevant languages
             df = only_keep_languages(df, languages=['en', 'de', 'ru'])
-            # remove empty rows
+            # Remove empty rows
             df = df.dropna(how='all')
             print(f"Line count after removing empty rows: {len(df)} lines")
-            # remove missing content or title rows
+            # Remove missing content or title rows
             df = df.dropna(subset=['content', 'title'], how='all')
             print(f"Line count after removing missing content or title rows: {len(df)} lines")
-            # remove duplicate urls
+            # Remove duplicate urls
             duplicate_urls = df['contentUrl'][df['contentUrl'].duplicated()]
             print(f"Duplicate URLs: {len(duplicate_urls)}")
             if len(duplicate_urls) > 0:
                 print(duplicate_urls)
             df = df.drop_duplicates(subset=['contentUrl'])
             print(f"Line count after removing duplicate URLs: {len(df)} lines")
-             # show row count per language
+             # Show row count per language
             print("Row count per language:")
             print(df['languageCode'].value_counts())
-            # display duplicate contentItemUids with language code and contentUrl
+            # Display duplicate contentItemUids with language code and contentUrl
             duplicate_ids = df['contentItemUid'][df['contentItemUid'].duplicated()]
             if len(duplicate_ids) > 0:
                 print("Duplicate contentItemUids with language code and contentUrl:")
                 print(df[df['contentItemUid'].isin(duplicate_ids)][['contentItemUid', 'languageCode', 'contentUrl']])
-            # display the languagecodes of the duplicate contentItemUids and their distribution
+            # Display the languagecodes of the duplicate contentItemUids and their distribution
             if len(duplicate_ids) > 0:
                 print("Language codes of duplicate contentItemUids:")
                 print(df[df['contentItemUid'].isin(duplicate_ids)]['languageCode'].value_counts())
-            # count the number of duplicate contentItemUids in each language
-            #show line account of df
+            # Count the number of duplicate contentItemUids in each language
+            # Show line count of df
             print(f"Line count: {len(df)} lines")
             
-            ### statistics ###
+            ### Statistics ###
 
-            # summary statistics of content length
+            # Summary statistics of content length
             df['content_length'] = df['content'].astype(str).apply(len)
             print("Content length statistics:")
             print(df['content_length'].describe())
-            # remove rows with very short content (less than 300 characters)
+            # Remove rows with very short content (less than 300 characters)
             df = df[df['content_length'] >= 300]
             print(f"Line count after removing short content rows: {len(df)} lines")
-            # summary statistics of the languagecode column
+            # Summary statistics of the languagecode column
             print("Language code statistics:")
             print(df['languageCode'].value_counts())
      
-            # delete duplicate contentItemUids, keep only one language per contentItemUid
+            # Delete duplicate contentItemUids, keep only one language per contentItemUid
             language_pairs = [('en', 'de'), ('en', 'ru'), ('de', 'ru')]
             for lang_a, lang_b in language_pairs:
                 df = delete_pairwise_half_duplicates(df, lang_a, lang_b, seed=42, ru_preserve=('ru' in (lang_a, lang_b)))
             
-            print("number of duplicate contentItemUids:")
+            print("Number of duplicate contentItemUids:")
             print(df['contentItemUid'].duplicated().sum())
             print("contentItemIds duplicates:")
             print(df[df['contentItemUid'].duplicated()][['contentItemUid', 'languageCode', 'contentUrl']])
-            # show row count per language
+            # Show row count per language
             print("Row count per language after removing duplicate contentItemUids:")
             print(df['languageCode'].value_counts())
-            # write to a new csv file with suffix '_cleaned.csv'
+            # Write to a new csv file with suffix '_cleaned.csv'
             relevant_columns = ['content', 'contentItemUid', 'contentUrl', 'languageCode', 'summary','title', 'uid']
             df = df[relevant_columns]
             output_path = str(Path(input_path).with_suffix('')) + '_cleaned_v6.csv'

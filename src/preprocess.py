@@ -15,15 +15,14 @@ def show_column(input_path, column_name: str):
         print(f"Column '{column_name}' not found in the data.")
 
 
-#extract contentid, title and column from the raw file, preprocess itnd convert it to a ndjson file for easier processing
-
+#Extract contentid, title and column from the raw file, preprocess and convert it to a ndjson file for easier processing
 def extract_title_and_content(input_path, output_path): 
     # Read the raw data
     df = pd.read_csv(input_path)
     # Select relevant columns
     relevant_columns = ['contentItemUid', 'title', 'content', 'summary']
     df = df[relevant_columns]
-    # preprocess the text
+    # Preprocess the text
     titles = []
     contents = []
     summaries = []
@@ -32,8 +31,8 @@ def extract_title_and_content(input_path, output_path):
         contents.append(clean_html_fragment(content))
         summaries.append(summary)
 
-    # create a nested dictionary with contentItemUid as key and title and content as inner dictionaries with title as key and content as value
-    # if summary is empty, keep it as empty string
+    # Create a nested dictionary with contentItemUid as key and title and content as inner dictionaries with title as key and content as value
+    # If summary is empty, keep it as empty string
     nested_dict = {
         uid: {"title": title, "content": content, "summary": summary if summary else ""}
         for uid, title, content, summary in zip(df['contentItemUid'], titles, contents, summaries)
