@@ -3,8 +3,6 @@
 # and saves the processed file to a new location
 import pandas as pd
 from pathlib import Path
-from bs4 import BeautifulSoup
-import trafilatura
 import random
 
 
