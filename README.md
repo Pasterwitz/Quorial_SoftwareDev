@@ -1,48 +1,206 @@
-# Quorial_SoftwareDev
-this is a university project for the course software engineering for language technologies and we aim to provide a chatbot specialized in providing civil society perspective on political issues upon a query 
+# Quorial Chatbot
 
-## Database
+## Technical Documentation
 
-- The application uses a local SQLite database. On first run the database is created automatically using the SQL scripts in `flask_quorial/tools/`.
-- Default database file: `flask_quorial/instance/flaskauu.sqlite` (this path is configured by the app's `DATABASE` setting).
-- The server start script (`run_chat_app.py`) will initialize the database only when the file does not already exist. This prevents accidental loss of data on normal restarts.
+### Project Overview
 
-### Resetting the database (safe)
+**Quorial** is a specialized chatbot application developed as part of the Software Engineering for Language Technologies course. 
+The system is intended to provide civil society perspectives on political issues through a conversational interface.
 
-1. Stop the server.
-2. Back up the existing database file before making changes:
+**Repository Link:** https://github.com/Pasterwitz/Quorial_SoftwareDev  
+
+---
+## Quick Start Guide
+
+### For End Users
+
+Want to try Quorial? You have two available options:
+
+**Option 1: Access the Live Deployment**
+
+Visit our deployed application at:
+**https://quorial.remotehost.top/auth/login**
+
+No installation required! Simply:
+1. Navigate to the URL above
+2. Log in or create an account
+3. Start asking questions about political and social issues
+4. Click Send
+5. Receive responses with civil society perspectives
+
+
+**Option 2: Run Locally**
+Want to run Quorial on your own machine? Follow these steps:
+
+*First-Time Setup (every new machine)**
 
 ```bash
-cp flask_quorial/instance/flaskauu.sqlite flask_quorial/instance/flaskauu.sqlite.bak
-```
+# 1) Clone and enter the repo
+git clone https://github.com/Pasterwitz/Quorial_SoftwareDev.git
+cd Quorial_SoftwareDev
 
-3. To reset (recreate) the database, remove the current DB file and then start the app — the initialization scripts will run on first start and recreate schema and seed data:
+# 2) Install Poetry (if not installed)
+curl -sSL https://install.python-poetry.org | python3 -
 
-```bash
-rm flask_quorial/instance/flaskauu.sqlite
-poetry run chat-app
-# or: poetry run python run_chat_app.py
-```
+# 3) Prepare environment variables
+cp .env.example .env
+# Add your MISTRAL_API_KEY and optional CHROMA/MODEL overrides to .env
 
-4. Alternatively, you can call the Flask CLI command that registers with the app (it will also re-run the initialization scripts). Make sure you are running from the project root and the package is importable:
+# 4) Install Python dependencies
+poetry install
 
-```bash
+# 5) Build the local Chroma vector store
+# (skip clean/preprocess/chunk if data/ already exists!)
+poetry run clean-data
+poetry run preprocess-data
+poetry run chunk-articles
+poetry run rebuild-chroma   # REQUIRED to create voxeurop_db directory
+
+# 6) Initialize the SQLite database once (creates instance/flaskauu.sqlite)
 poetry run flask --app flask_quorial init-db
+
+# 7) Export the API key for your shell session if you do not rely on .env
+export MISTRAL_API_KEY="your_actual_key_here"
+
+# 8) Launch the Flask chat UI
+poetry run chat-app
 ```
 
-Warning: `init-db` and re-running the schema will drop and re-create tables. Always back up the DB file before resetting to avoid data loss.
+**Everyday Commands (after initial setup)**
+```bash
+# Launch the application
+poetry run chat-app
 
-If you want an intentional way to force reinitialization in development without manual deletion, let me know and I can add an environment flag (for example `RESET_DB=1`) to `run_chat_app.py` to control that behavior.
+```
+Access at `http://127.0.0.1:5000`
 
-### Force reinitialization with environment flag (dev)
+---
 
-You can force the application to back up and recreate the database on startup by setting the `RESET_DB` environment variable. This is useful in development when you want to reset the database quickly while preserving a backup.
+## Features
+
+Quorial provides the following key features to help users understand political issues from civil society perspectives:
+
+#### 1. Evidence-based answers
+- Retrieves information from internal database
+
+#### 2. Structured responses
+- Summary, key insights, gaps in context, and sources with relevance scores
+
+#### 3. User authentication
+- Personal workspace with login
+
+#### 4. Knowledge repository
+- Upload your own documents and query them
+
+ #### 5. Source selection
+ - Choose between RepCo database and/or uploaded files
+
+#### 6. Chat history
+-  Save and revisit conversations
+
+#### 7. PDF export
+- Export full conversations with insights and sources
+
+--- 
+
+## Technology stack
+
+1. **Backend**: Flask (Python)
+2. **Database**: SQLite (chat history), Chroma (vector database)
+3. **LLM**: Mistral AI API
+4. **Frontend**: HTML, CSS
+---
+
+## Dataset
+
+**Source**: Voxeurope articles
+**Languages**: English (595), German (445), Russian (301)
+**Format**: CSV -> JSON Lines -> Vector embeddings
+**Columns**: content, contentItemUid, contentUrl, languageCode, summary, title, uid
+
+---
+
+## Architecture
+
+```
+User Query → Flask App → Chroma Vector Search → Mistral AI → Response
+                ↓
+           SQLite DB (chat history)
+```
+
+**Data Flow:**
+1. User submits query
+2. Semantic search in Chroma database
+3. Retrieved articles sent to Mistral AI as context
+4. AI generates response with sources
+5. Chat saved to SQLite
+
+---
+
+## Project Structure
+
+```
+Quorial_SoftwareDev/
+├── data/                    # chunked, cleaned, preprocessed datasets
+├── flask_quorial/          # Main Flask application
+│   ├── static/pics/        
+│   ├── templates/         
+│   ├── tools/            
+│   ├── __init__.py         
+│   ├── auth.py         
+│   ├── chat.py             # Chat functionality
+│   ├── db.py               # Database operations
+│   └── state.py            
+├── src/                    # Source modules
+├── tests/                  # Test suite
+├── .env.example            # Environment template
+├── .gitattributes          
+├── .gitignore              
+├── POETRY_COMMANDS.md      # Poetry reference
+├── README.md               # This file
+├── poetry.lock             # Locked dependencies
+├── poetry.toml             # Poetry config
+├── pyproject.toml          # Project dependencies
+└── run_chat_app.py         # Application entry point
+```
+
+---
+
+## Configuration
+
+Required in `.env`:
+```bash
+MISTRAL_API_KEY=your-key-here
+```
+
+Get Mistral API key from: https://mistral.ai
+For detailed configuration options and troubleshooting, see `POETRY_COMMANDS.md`
+
+---
+
+## Testing
 
 ```bash
-# backup + recreate database on start
-RESET_DB=1 poetry run chat-app
-# or
-RESET_DB=1 poetry run python run_chat_app.py
+poetry run pytest                           # Run all test
+poetry run pytest -s                        # Run with output
+poetry run pytest -k test_name              # Run specific test
 ```
+For complete testing guide and maintenance commands, see `POETRY_COMMANDS.md`
 
-The start script will back up the existing DB to `flask_quorial/instance/flaskauu.sqlite.bak`, remove the original file, and then initialize a new DB with schema and seed data.
+---
+
+## Contributors
+
+- [Zhiyi Chen](https://github.com/Jojelu)
+- [Angelina Radovanov](https://github.com/angelinaradovanov)
+- [Zarina Beisenbayeva](https://github.com/zariness00)
+- [Polina Bogdanova](https://github.com/01ponyo)
+
+**Product Owner**: [Alexander Baratsits]  
+**Development Team**: [Zhiyi Chen, Angelina Radovanov, Zarina Beisenbayeva, Polina Bogdanova]
+
+---
+
+## License
+
+Academic project for Software Engineering for Language Technologies course.
