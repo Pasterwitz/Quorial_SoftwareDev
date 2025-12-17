@@ -58,3 +58,6 @@ def main():
     show_column(input_path, 'title')
     show_column(input_path, 'summary')
     extract_title_and_content(input_path, output_path)
+
+if __name__ == "__main__":
+    main()
