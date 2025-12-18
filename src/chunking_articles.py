@@ -1,6 +1,6 @@
 import json
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-import os
+
 def load_preprocessed_articles(file_path):
     articles = []
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -43,9 +43,6 @@ def chunk_articles(articles):
     
 
     return chunked_articles
-def save_chunked_articles(chunked_articles, output_file_path):
-
-    import os
 
 def save_chunked_articles(chunked_articles, output_file_path):
  
