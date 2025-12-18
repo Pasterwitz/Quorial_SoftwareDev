@@ -81,7 +81,7 @@ Access at `http://127.0.0.1:5000`
 Quorial provides the following key features to help users understand political issues from civil society perspectives:
 
 #### 1. Evidence-based answers
-- Retrieves information from internal database
+- Retrieves information from internal RepCo database
 
 #### 2. Structured responses
 - Summary, key insights, gaps in context, and sources with relevance scores
@@ -89,16 +89,10 @@ Quorial provides the following key features to help users understand political i
 #### 3. User authentication
 - Personal workspace with login
 
-#### 4. Knowledge repository
-- Upload your own documents and query them
-
- #### 5. Source selection
- - Choose between RepCo database and/or uploaded files
-
-#### 6. Chat history
+#### 4. Chat history
 -  Save and revisit conversations
 
-#### 7. PDF export
+#### 5. PDF export
 - Export full conversations with insights and sources
 
 --- 
